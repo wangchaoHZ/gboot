@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	VERSION     = "1.0.0"
 	SERVER_IP   = "192.168.1.122"
 	SERVER_PORT = 5000
 	BUFFER_SIZE = 256
@@ -131,9 +132,15 @@ func sendFirmware(firmwareFile string) {
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: firmware_sender <firmware_file>")
+		fmt.Println("       firmware_sender version  or  firmware_sender -v  (to check version)")
 		os.Exit(1)
 	}
 
-	firmwareFile := os.Args[1]
-	sendFirmware(firmwareFile)
+	arg := os.Args[1]
+	if arg == "version" || arg == "-v" {
+		fmt.Printf("Firmware Sender Version: %s\n", VERSION)
+		return
+	}
+
+	sendFirmware(arg)
 }
