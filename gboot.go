@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	VERSION     = "1.0.0"
+	VERSION     = "1.1.0"
 	SERVER_IP   = "192.168.1.122"
 	SERVER_PORT = 5000
 	BUFFER_SIZE = 256
