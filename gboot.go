@@ -7,14 +7,14 @@ import (
 	"io"
 	"net"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/schollz/progressbar/v3"
 )
 
 const (
-	VERSION     = "1.1.0"
-	SERVER_IP   = "192.168.1.122"
+	VERSION     = "1.2.0"
 	SERVER_PORT = 5000
 	BUFFER_SIZE = 256
 	ACK_MSG     = "ACK"
@@ -47,7 +47,7 @@ func calculateCRC32(filePath string) (uint32, error) {
 	return hash.Sum32(), nil
 }
 
-func sendFirmware(firmwareFile string) {
+func sendFirmware(firmwareFile, serverIP string) {
 	// Read firmware file
 	firmwareData, err := os.ReadFile(firmwareFile)
 	if err != nil {
@@ -69,9 +69,9 @@ func sendFirmware(firmwareFile string) {
 	// Connect to TCP server
 	var conn net.Conn
 	for {
-		conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", SERVER_IP, SERVER_PORT))
+		conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", serverIP, SERVER_PORT))
 		if err == nil {
-			fmt.Printf("Connected to %s:%d\n", SERVER_IP, SERVER_PORT)
+			fmt.Printf("Connected to %s:%d\n", serverIP, SERVER_PORT)
 			break
 		}
 		fmt.Printf("Connection failed: %v, retrying in 3 seconds...\n", err)
@@ -123,24 +123,51 @@ func sendFirmware(firmwareFile string) {
 	crcResponse := make([]byte, len(CRC_OK_MSG))
 	_, err = io.ReadFull(conn, crcResponse)
 	if err != nil || string(crcResponse) != CRC_OK_MSG {
-		fmt.Println("Error: CRC32 verification failed, firmware might be corrupted!")
+		// Output error with red color
+		fmt.Printf("\n")
+		fmt.Printf("Error: CRC32 verification failed, firmware might be corrupted!\n")
 	} else {
-		fmt.Println("Success: CRC32 verification passed, firmware transfer complete.")
+		// Output success with green color
+		fmt.Printf("\n")
+		fmt.Printf("Success: CRC32 verification passed, firmware transfer complete.\n")
 	}
 }
 
+func isValidIP(ip string) bool {
+	// Regular expression for validating an IPv4 address
+	re := regexp.MustCompile(`^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$`)
+	return re.MatchString(ip)
+}
+
 func main() {
+	// First check for version flag
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: firmware_sender <firmware_file>")
-		fmt.Println("       firmware_sender version  or  firmware_sender -v  (to check version)")
+		fmt.Println("Usage: gboot <firmware_file> <server_ip>")
+		fmt.Println("       gboot version  or  gboot -v  (to check version)")
 		os.Exit(1)
 	}
 
 	arg := os.Args[1]
+
+	// Check if the argument is 'version' or '-v'
 	if arg == "version" || arg == "-v" {
 		fmt.Printf("Firmware Sender Version: %s\n", VERSION)
 		return
 	}
 
-	sendFirmware(arg)
+	// Check if the argument is a firmware file and IP address
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: gboot <firmware_file> <server_ip>")
+		os.Exit(1)
+	}
+
+	// Validate IP address
+	serverIP := os.Args[2]
+	if !isValidIP(serverIP) {
+		fmt.Printf("Error: Invalid IP address format: %s\n", serverIP)
+		os.Exit(1)
+	}
+
+	// Send the firmware
+	sendFirmware(arg, serverIP)
 }
